@@ -1,17 +1,18 @@
 import unittest
 import os
-from work_muxixyz_app import create_app,db
-from flask import current_app,url_for,jsonify
+from work_muxixyz_app import create_app, db
+from flask import current_app, url_for, jsonify
 from flask_sqlalchemy import SQLAlchemy
-from ..work_muxixyz_app.models import Team,Group,User,Project,Message,Statu,File,Comment
+from work_muxixyz_app.models import Team, Group, User, Project, Message, Statu, File, Comment, User2Project
 import random
 import json
 
-# db=SQLAlchemy()
+db = SQLAlchemy()
+
 
 class BasicTestCase(unittest.TestCase):
 
-    def get_api_headers(self,ifToken):
+    def get_a_api_headers(self, ifToken):
         if ifToken is True:
             return {
                 'token': TOKEN,
@@ -24,157 +25,164 @@ class BasicTestCase(unittest.TestCase):
                 'Content-Type': 'application/json',
             }
 
-
     def setUp(self):
-        self.app = create_app(os.getenv('FLASK_CONFIG') or 'default')
+        self.app = create_app('testing')
         self.app_context = self.app.app_context()
         self.app_context.push()
         self.client = self.app.test_client()
         db.create_all()
 
-#    def tearDown(self):
-#        db.session.remove()
-#        db.drop_all()
-#        db.create_all()
-#        self.app_context.pop()
+        from work_muxixyz_app.api import api
+        self.app.register_blueprint(api, url_prefix='/api/v1.0/')
+
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+        self.app_context.pop()
 
     def test_app_exist(self):
         self.assertFalse(current_app is None)
 
-# API FOR GET A TOKEN AND PREPARTION
+    def a(self):
+        muxi = Team(name='test', count=3, creator=1)
+        db.session.add(muxi)
+        db.session.commit()
 
     def test_management_a_auth(self):
+        # muxi=Team(name='test',count=3)
+        # superuser=User(name='test',email='cat@test.com',tel='11111111111',role=7,team_id=1)
+        # muxi.creator=1
+        # admin=User(name='test',email='dog@test.com',tel='22222222222',role=1,team_id=1)
+        # usr=User(name='test',email='pig@test.com',tel='33333333333',role=1,team_id=1)
+        # project=Project(name='test')
+        # rela=User2Project(user_id=6,project_id=6)
+        # db.session.add(muxi)
+        # db.session.add(superuser)
+        # db.session.add(admin)
+        # db.session.add(usr)
+        # db.session.add(project)
+        # db.session.add(rela)
+        # db.session.commit()
         response=self.client.post(
             url_for('api.login',_external=True),
             data=json.dumps({
                 "username": 'test',
             }),
-            headers=self.get_api_headers(False),
+            headers = self.get_a_api_headers(False),
         )
         s=json.loads(response.data.decode('utf-8'))['token']
         global TOKEN
         TOKEN=s
-        muxi=Team(name='test',count=3)
-        superuser=User(name='cat',email='cat@test.com',tel='11111111111',role=15,team_id=1)
-        muxi.creator=1
-        admin=User(name='dog',email='dog@test.com',tel='22222222222',role=1,team_id=1)
-        usr=User(name='pig',email='pig@test.com',tel='33333333333',role=1,team_id=1)
-        db.session.add(muxi,superuser,admin,usr)
-        db.session.commit()
         print ('OK')
-# END
 
-# API FOR MANAGEMENT START
-
-    def test_management_a_newgroup(self):
-        response=self.client.post(
-            url_for('api.NewGroup',_external=True),
-            data=json.dumps({
-                "groupName": 'test',
-                "userlist": {3} 
+    def test_project_a_1_new(self):
+        response = self.client.post(
+            'http://localhost/api/v1.0/project/new/',
+            data = json.dumps({
+                "username": "test",
+                "projectname": "test",
+                "userlist": [
+                    {
+                        "userID": 6, 
+                        "userName": "test"
+                    }
+                ],
+                "intro": "test"
             }),
-            headers=self.get_api_headers(True)
+            headers = self.get_a_api_headers(True)
         )
-        self.assertTrue(response.status_code==200)
-
-    def test_management_b_groupuserlist(self):
-        response=self.client.get(
-            'http://localhost/api/v1.0/group/1/userList',
-            headers=self.get_api_headers(True)
-        )
-        self.assertTrue(response.status_code==200)
-        s=json.loads(response.data.decode('utf-8'))['list']
-        print (s)
-
-    def test_management_c_grouplist(self):
-        response=self.client.get(
-            url_for('api.GroupList',_external=True),
-            headers=self.get_api_headers(True)
-        )
-        self.assertTrue(response.status_code==200)
-        s=json.loads(response.data.decode('utf-8'))['list']
-        print (s)
-
-    def test_management_d_projectuserlist(self):
-        response=self.client.get(
-            'http://localhost/api/v1.0/project/1/userList',            
-            headers=self.get_api_headers(True)
-        )
-        self.assertTrue(response.status_code==200)
-        s=json.loads(response.data.decode('utf-8'))['list']
-        print (s)
-
-    def test_management_e_userprojectlist(self):
-        response=self.client.get(
-            'http://localhost/api/v1.0/user/1/project/list',
-            headers=self.get_api_headers(True)
-        )
-        self.assertTrue(response.status_code==200)
-        s=json.loads(response.data.decode('utf-8'))['list']
-        print (s)
-
-    def test_management_f_2bmember(self):
-        response=self.client.post(
-            url_for('api.2bMember',_external=True),
-            data=json.dumps({
-                "userID": 1,
+        self.assertTrue(response.status_code == 200)
+'''
+    def test_project_a_2_project(self):
+        response = self.client.post(
+            'http://localhost/api/v1.0/project/1/',
+            data = json.dumps({
+                "intro": "test",
+                "name": "test"
             }),
-            headers=self.get_api_headers(True)
+            headers = self.get_a_api_headers(True)
         )
-        self.assertTrue(response.status_code==200)
+        self.assertTrue(response.status_code == 200)
 
-    def test_management_g_addadmin(self):
-        response=self.client.post(
-            url_for('api.AddAdmin',_external=True),
-            data=json.dumps({
-                "luckdog": 'luckdog',
+    def test_project_a_3_comments(self):
+        response = self.client.post(
+            'http://localhost/api/v1.0/project/1/file/1/comments/',
+            data = json.dumps({
+                "content": "test"
             }),
-            headers=self.get_api_headers(True)
+            headers = self.get_a_api_headers(True)
         )
-        self.assertTrue(response.status_code==200)
+        self.assertTrue(response.status_code == 200)
 
-    def test_management_h_usermanageproject(self):
-        response=self.client.post(
-            'http://localhost/api/v1.0/user/2/managePro',
-            data=json.dumps({
-                "projectList": {1},
+    def test_project_a_4_member(self):
+        response = self.client.post(
+            'http://localhost/api/v1.0/project/1/member/',
+            data = json.dumps({
+                "userlist": [
+                    {
+                        "userID": 1
+                    }
+                ],
+                "username": "test"
             }),
-            headers=self.get_api_headers(True)
+            headers = self.get_a_api_headers(True)
         )
-        self.assertTrue(response.status_code==200)
+        self.assertTrue(response.status_code == 200)
 
-    def test_management_i_usermanagegroup(self):
-        response=self.client.post(
-            'http://localhost/api/v1.0/user/2/manageGroup',
-            data=json.dumps({
+    def test_project_b_1_comment(self):
+        responst = self.client.get(
+            'http://localhost/api/v1.0/project/1/file/1/comment/1/',
+            headers = self.get_a_api_headers(True)
+        )
+        self.assertTrue(response.status_code == 200)
+
+    def test_project_b_2_comments(self):
+        response = self.client.get(
+            'http://localhost/api/v1.0/project/1/file/1/comments/',
+            headers = self.get_a_api_headers(True)
+        )
+        self.assertTrue(response.status_code == 200)
+
+    def test_project_b_3_member(self):
+        response = self.client.get(
+            'http://localhost/api/v1.0/project/1/member/',
+            headers = self.get_a_api_headers(True)
+        )
+        self.assertTrue(response.status_code == 200)
+    
+    def test_project_b_4_project(self):
+        response = self.client.get(
+            'http://localhost/api/v1.0/project/1/',
+            headers = self.get_a_api_headers(True)
+        )
+        self.assertTrue(response.status_code == 200)
+
+    def test_project_b_5_member(self):
+        response = self.client.put(
+            'http://localhost/api/v1.0/project/1/member/',
+            data = json.dumps({
                 "groupID": 1,
+                "userList": [
+                    {
+                        "userID": 1
+                    }
+                ]
             }),
-            headers=self.get_api_headers(True)
+            headers = self.get_a_api_headers(True)
         )
-        self.assertTrue(response.status_code==200)
+        self.assertTrue(response.status_code == 200)
 
-    def test_management_j_setrole(self):
-        response=self.client.post(
-            'http://localhost/api/v1.0/user/2/setRole',
-            data=json.dumps({
-                "role": 2,
-            }),
-            headers=self.get_api_headers(True)
+    def test_project_c_1_comment(self):
+        response = self.client.delete(
+            'http://localhost/api/v1.0/project/1/file/1/comment/1/',
+            headers = self.get_a_api_headers(True)
         )
-        self.assertTrue(response.status_code==200)
+        self.assertTrue(response.status_code == 200)
 
-    def test_management_k_usersetting(self):
-        response=self.client.post(
-            'http://localhost/api/v1.0/user/1/setting',
-            data=json.dumps({
-                "username": 'test',
-                'address': 'test',
-                'tel': '11111111111',
-                'message': True,
-                'email': False,
-            }),
-            headers=self.get_api_headers(True)
+    def test_project_c_2_project(self):
+        response = self.client.delete(
+            'http://localhost/api/v1.0/project/1',
+            headers = self.get_a_api_headers(True)
         )
-        self.assertTrue(response.status_code==200)
-
-# API FOR MANAGEMENT END
+        self.assertTrue(response.status_code == 200)
+'''
