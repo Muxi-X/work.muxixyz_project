@@ -49,7 +49,7 @@ def project_new(uid):
     }), 200
 
 
-@api.route('project/<int:pid>/', methods=['POST', 'DELETE'])
+@api.route('project/<int:pid>/', methods=['POST', 'DELETE', 'GET'])
 @login_required
 def project_pid(uid, pid):
     if request.method == 'POST':
@@ -82,6 +82,66 @@ def project_pid(uid, pid):
                 db.session.delete(file)
             db.session.commit()
         except:
+            return jsonify({
+            }), 500
+        return jsonify({
+        }), 200
+    elif request.method == 'GET':
+        try:
+            project = Project.query.filter_by(id=pid).first()
+            intro = project.intro
+            name = project.name
+            userCount = project.count
+            return jsonify({
+                "intro": intro,
+                "name": name,
+                "userCount": userCount
+            }), 200
+        except:
+            return jsonify({
+            }), 500
+    else:
+        return jsonify({
+        }), 405
+
+
+@api.route('project/<int:pid>/member/', methods=['PUT', 'GET'])
+@login_required
+def project_member(uid, pid):
+    if request.method == 'PUT':
+        userlist = request.get_json().get('userList')
+        try:
+            project = Project.query.filter_by(id=pid).first()
+            project.count += len(userlist)
+            db.session.add(project)
+            for user in userlist:
+                nuser = User2Project(
+                    user_id=user,
+                    project_id=pid
+                )
+                db.session.add(nuser)
+            db.session.commit()
+        except Exception as e:
+            print(e)
+            return jsonify({
+            }), 500
+        return jsonify({
+        }), 200
+    elif request.method == 'GET':
+        try:
+            memberList = []
+            u2plist = User2Project.query.filter_by(project_id=pid).all()
+            for u2p in u2plist:
+                user = User.query.filter_by(id=u2p.user_id).first()
+                memberList.append(
+                    {
+                        "userID": user.id,
+                        "username": user.name,
+                        "avatar": user.avatar
+                    }
+                )
+        except Exception as e:
+            print(e)
             return jsonify({
             }), 500
         return jsonify({
